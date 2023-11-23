@@ -4,11 +4,21 @@ import 'package:kisiler_uygulamasi/sqlite/veritabani_yardimcisi.dart';
 class KisilerDaoRepository{
 
   Future<void> kaydet(String kisi_ad, String kisi_tel) async{
-    print("Kişi Kaydet: $kisi_ad - $kisi_tel");
+    var db = await VeritabaniYardimcisi.veritabaniErisim(); //veritabanı erişim ve kaydetme islemi burada
+    var yeniKisi = Map<String,dynamic>();
+    yeniKisi["kisi_ad"]= kisi_ad;
+    yeniKisi["kisi_tel"]= kisi_tel;
+
+    await db.insert("kisiler", yeniKisi);
   }
 
   Future<void> guncelle(int kisi_id, String kisi_ad, String kisi_tel) async {
-    print("Kişi Güncelle: $kisi_id - $kisi_ad - $kisi_tel");
+    var db = await VeritabaniYardimcisi.veritabaniErisim(); //veritabanı erişim ve guncelleme islemi burada
+    var guncellenenKisi = Map<String,dynamic>();
+    guncellenenKisi["kisi_ad"]= kisi_ad;
+    guncellenenKisi["kisi_tel"]= kisi_tel;
+
+    await db.update("kisiler", guncellenenKisi, where: "kisi_id = ?", whereArgs: [kisi_id]); //whereArgs deki kisi_id otomatik olarak ? yerine geçecek
   }
 
   Future<List<Kisiler>> kisileriYukle() async{
@@ -25,23 +35,21 @@ class KisilerDaoRepository{
   }
 
   Future<List<Kisiler>> ara(String aramaKelimesi) async{
-    var kisilerListesi = <Kisiler>[];
-    var k1 = Kisiler(kisi_id: 1, kisi_ad: "Ahmet", kisi_tel: "1111");
-    var k2 = Kisiler(kisi_id: 2, kisi_ad: "Zeynep", kisi_tel: "2222");
-    var k3 = Kisiler(kisi_id: 3, kisi_ad: "Beyza", kisi_tel: "3333");
-    kisilerListesi.add(k1);
-    kisilerListesi.add(k2);
-    kisilerListesi.add(k3);
-
-    Iterable<Kisiler> filtreleme = kisilerListesi.where((kisiNesnesi) {
-      return kisiNesnesi.kisi_ad.toLowerCase().contains(aramaKelimesi.toLowerCase());
+    var db = await VeritabaniYardimcisi.veritabaniErisim(); //veritabanı erisim arama islemi yapicaz burda
+    List<Map<String, dynamic>> satirlar = await db.rawQuery("SELECT * FROM kisiler WHERE kisi_ad like '%$aramaKelimesi%'"); //sorguyu calistirabiliyoruz
+    //her bir satırı bir map olarak bir listeye atıyoruz
+    return List.generate(satirlar.length, (index) { //tek tek bu listenin tum elemanlari icin Kisiler sınıfından nesne üretiyoruz
+      var satir = satirlar[index];
+      var kisi_id = satir["kisi_id"];
+      var kisi_ad = satir["kisi_ad"];
+      var kisi_tel = satir["kisi_tel"];
+      return Kisiler(kisi_id: kisi_id, kisi_ad: kisi_ad, kisi_tel: kisi_tel); //uretilen nesnelerin verileri veritabanından almis oluyoruz yani
     });
-
-    return filtreleme.toList();
   }
 
   Future<void> sil(int kisi_id) async{
-    print("Kişi sil: $kisi_id");
+    var db = await VeritabaniYardimcisi.veritabaniErisim(); //veritabanı erişim ve silme islemi
+    await db.delete("kisiler", where: 'kisi_id = ?', whereArgs: [kisi_id]);
   }
 
 
